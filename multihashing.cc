@@ -400,20 +400,25 @@ Handle<Value> cryptonight(const Arguments& args) {
     HandleScope scope;
 
     bool fast = false;
+    bool light = false;
 
-    if (args.Length() < 1)
-        return except("You must provide one argument.");
+    if (args.Length() < 2)
+        return except("You must provide at least two argument (buffer, fast).");
     
-    if (args.Length() >= 2) {
-        if(!args[1]->IsBoolean())
-            return except("Argument 2 should be a boolean");
-        fast = args[1]->ToBoolean()->BooleanValue();
+    if (args.Length() >= 3) {
+        if(!args[2]->IsBoolean())
+            return except("Argument 3 should be a boolean");
+        light = args[2]->ToBoolean()->BooleanValue();
     }
 
     Local<Object> target = args[0]->ToObject();
+    fast = args[1]->ToBoolean()->BooleanValue();
 
     if(!Buffer::HasInstance(target))
         return except("Argument should be a buffer object.");
+
+    if (light && fast)
+        return except("Light only makes sense for slow hash.");
 
     char * input = Buffer::Data(target);
     char output[32];
@@ -423,7 +428,7 @@ Handle<Value> cryptonight(const Arguments& args) {
     if(fast)
         cryptonight_fast_hash(input, output, input_len);
     else
-        cryptonight_hash(input, output, input_len);
+        cryptonight_hash(input, output, input_len, light);
 
     Buffer* buff = Buffer::New(output, 32);
     return scope.Close(buff->handle_);
